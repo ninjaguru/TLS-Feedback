@@ -43,23 +43,23 @@ const App: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mobileEnc = params.get('m');
+    const mobileLegacy = params.get('mobile');
 
     if (mobileEnc) {
       try {
         // Remove spaces and handle standard/URL-safe base64
         const sanitized = mobileEnc.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
         const decoded = atob(sanitized);
-        console.log("Registry: Successfully decoded mobile from URL:", decoded);
-        setData(prev => ({ ...prev, mobileNumber: decoded }));
+        if (decoded && decoded.length > 5) {
+          console.log("Registry: Mobile decoded successfully:", decoded);
+          setData(prev => ({ ...prev, mobileNumber: decoded }));
+        }
       } catch (e) {
-        console.error("Registry Error: Failed to decode mobile number:", e);
+        console.error("Registry Error: Decoding failed:", e);
       }
-    } else {
-      const mobileRaw = params.get('mobile');
-      if (mobileRaw) {
-        console.log("Registry: Using legacy mobile number from URL:", mobileRaw);
-        setData(prev => ({ ...prev, mobileNumber: mobileRaw }));
-      }
+    } else if (mobileLegacy) {
+      console.log("Registry: Using legacy mobile:", mobileLegacy);
+      setData(prev => ({ ...prev, mobileNumber: mobileLegacy }));
     }
   }, []);
 
@@ -87,33 +87,32 @@ const App: React.FC = () => {
   const handleFinish = async (finalComments: string) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-
-    // First, update the state so UI reflects final data if needed
-    setData(prev => ({ ...prev, additionalComments: finalComments }));
-
-    // Create the final data object for syncing (ensures we have the absolute latest)
-    const finalData: SurveyData = {
-      ...data,
-      additionalComments: finalComments
-    };
-
     setStep('loading');
 
-    try {
-      const [syncResult, message] = await Promise.all([
-        syncFeedbackToRegistry(finalData),
-        generateThankYouMessage(finalData)
-      ]);
+    // Use functional update to ensure we have the absolute latest survey state
+    setData(prev => {
+      const finalData = { ...prev, additionalComments: finalComments };
 
-      setAiMessage(message);
-      setStep('completion');
-    } catch (error) {
-      console.error("Workflow error:", error);
-      setAiMessage("Thank you for your visit. We have recorded your feedback and look forward to serving you again.");
-      setStep('completion');
-    } finally {
-      setIsSubmitting(false);
-    }
+      // Perform the async sync with the complete data
+      (async () => {
+        try {
+          const [syncResult, message] = await Promise.all([
+            syncFeedbackToRegistry(finalData),
+            generateThankYouMessage(finalData)
+          ]);
+          setAiMessage(message);
+          setStep('completion');
+        } catch (error) {
+          console.error("Workflow error:", error);
+          setAiMessage("Thank you for your visit. We have recorded your feedback.");
+          setStep('completion');
+        } finally {
+          setIsSubmitting(false);
+        }
+      })();
+
+      return finalData;
+    });
   };
 
   const renderContent = () => {
@@ -176,7 +175,7 @@ const App: React.FC = () => {
         };
 
         const qImages: Record<string, string[]> = {
-          q6_tea: ['/greentea.webp', '/lemontea.webp'],
+          q6_tea: ['/greentea.jpg', '/lemontea.jpg'],
           q7_packages: ['/packages.png'],
           q8_review: ['/google_review.webp'],
           q9_coupon: ['/coupon.jpg']
