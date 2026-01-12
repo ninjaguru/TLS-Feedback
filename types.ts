@@ -17,9 +17,10 @@ export interface SurveyData {
   reviewRequested: boolean | null;
   couponReceived: boolean | null;
   additionalComments: string;
+  mobileNumber: string | null;
 }
 
-export type StepId = 
+export type StepId =
   | 'welcome'
   | 'q1_stylists'
   | 'q2_first_visit'

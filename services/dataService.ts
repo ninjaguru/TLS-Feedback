@@ -24,7 +24,8 @@ export const syncFeedbackToRegistry = async (data: SurveyData): Promise<boolean>
     ...data,
     stylists: data.stylistRatings.map(s => s.name).join(", "),
     ratings: data.stylistRatings.map(s => `${s.name}: ${s.rating}/5`).join(" | "),
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    mobile: data.mobileNumber || "N/A"
   };
 
   try {
@@ -54,6 +55,7 @@ export const syncFeedbackToRegistry = async (data: SurveyData): Promise<boolean>
           body: JSON.stringify({
             fields: {
               "Date": payload.timestamp,
+              "Mobile": payload.mobile,
               "Stylists": payload.stylists,
               "Ratings": payload.ratings,
               "FirstVisit": payload.isFirstVisit,
