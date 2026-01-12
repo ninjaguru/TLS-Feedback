@@ -4,49 +4,14 @@ import { SurveyData } from "../types";
 /**
  * THE LONDON SALON | DATA REGISTRY SERVICE
  * 
- * --- GOOGLE SHEETS SETUP ---
- * 1. Open your Google Sheet.
- * 2. Go to Extensions > App Script.
- * 3. Paste the following code:
- * 
- *    function doPost(e) {
- *      try {
- *        var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
- *        var data = JSON.parse(e.postData.contents);
- *        
- *        sheet.appendRow([
- *          new Date(),
- *          data.stylists,
- *          data.ratings,
- *          data.isFirstVisit ? "Yes" : "No",
- *          data.isSatisfied ? "Yes" : "No",
- *          data.isWelcoming ? "Yes" : "No",
- *          data.isTimely ? "Yes" : "No",
- *          data.teaOffered ? "Yes" : "No",
- *          data.packagesExplained ? "Yes" : "No",
- *          data.reviewRequested ? "Yes" : "No",
- *          data.couponReceived ? "Yes" : "No",
- *          data.additionalComments
- *        ]);
- *        
- *        return ContentService.createTextOutput(JSON.stringify({"result":"success"}))
- *          .setMimeType(ContentService.MimeType.JSON);
- *      } catch (f) {
- *        return ContentService.createTextOutput(JSON.stringify({"result":"error", "error": f.toString()}))
- *          .setMimeType(ContentService.MimeType.JSON);
- *      }
- *    }
- * 
- * 4. Deploy > New Deployment > Web App.
- * 5. Execute as: Me. Access: Anyone.
- * 6. Copy the URL and replace GOOGLE_SHEETS_WEBHOOK_URL below.
+ * For Google Sheets setup instructions, please read: GOOGLE_SHEETS_SETUP.md
  */
 
-// REPLACE THIS WITH YOUR DEPLOYED URL
-const GOOGLE_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/PLACEHOLDER/exec';
+// REPLACE THIS WITH YOUR DEPLOYED WEB APP URL
+const GOOGLE_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxBloTRMQGBLXAXqn63djRrtyxenMWYS7aeGJYqfURAt19N_bnX4Npri1lxV4sLLL5e/exec';
 
 // AIRTABLE CONFIGURATION
-const AIRTABLE_API_KEY = 'pat.PLACEHOLDER'; 
+const AIRTABLE_API_KEY = 'pat.PLACEHOLDER';
 const AIRTABLE_BASE_ID = 'appPLACEHOLDER';
 const AIRTABLE_TABLE_NAME = 'Feedback';
 
@@ -71,7 +36,7 @@ export const syncFeedbackToRegistry = async (data: SurveyData): Promise<boolean>
         fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
           method: 'POST',
           mode: 'no-cors', // Essential for Google Apps Script redirects in browsers
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify(payload)
         }).catch(err => console.error("Sheets Registry Error:", err))
       );
@@ -102,12 +67,12 @@ export const syncFeedbackToRegistry = async (data: SurveyData): Promise<boolean>
 
     // Wait for network requests and the aesthetic delay to complete
     await Promise.allSettled([...syncTasks, minimumDelay]);
-    
+
     return true;
   } catch (error) {
     console.error("Registry Synchronisation Error:", error);
     // We wait for the delay even on error to maintain the UI flow
     await minimumDelay;
-    return true; 
+    return true;
   }
 };
