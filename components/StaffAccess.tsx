@@ -76,8 +76,7 @@ const StaffAccess: React.FC<StaffAccessProps> = ({ onMobileSet, currentMobile })
                                 onClick={() => {
                                     if (generatedUrl) {
                                         const url = new URL(generatedUrl);
-                                        window.history.pushState({}, '', url.search);
-                                        window.location.reload(); // Force reload to trigger App.tsx useEffect and clear path
+                                        window.location.href = `/${url.search}`;
                                     } else {
                                         window.location.href = '/';
                                     }
@@ -96,8 +95,7 @@ const StaffAccess: React.FC<StaffAccessProps> = ({ onMobileSet, currentMobile })
                     onClick={() => {
                         const params = new URLSearchParams(window.location.search);
                         const m = params.get('m');
-                        window.history.pushState({}, '', m ? `/?m=${m}` : '/');
-                        window.location.reload();
+                        window.location.href = m ? `/?m=${m}` : '/';
                     }}
                     className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-luxury-gold transition-colors"
                 >
