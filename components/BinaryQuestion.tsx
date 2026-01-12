@@ -15,7 +15,7 @@ const BinaryQuestion: React.FC<BinaryQuestionProps> = ({ text, onAnswer, images 
       {images && images.length > 0 && (
         <div className="flex justify-center gap-8 mb-12 animate-float">
           {images.map((src, idx) => {
-            const isLogo = src.includes('google') || src.includes('review') || src.includes('coupon');
+            const isLogo = src.includes('google') || src.includes('review') || src.includes('coupon') || src.includes('packages');
             return (
               <div key={idx} className={`relative group overflow-hidden ${isLogo ? 'rounded-xl bg-white p-4' : 'rounded-full'} w-32 h-32 md:w-40 md:h-40 border-2 border-luxury-gold/20 hover:border-luxury-gold transition-all duration-700 shadow-luxury`}>
                 <img
@@ -33,18 +33,16 @@ const BinaryQuestion: React.FC<BinaryQuestionProps> = ({ text, onAnswer, images 
       <div className="flex flex-col md:flex-row gap-6 justify-center">
         <button
           onClick={() => onAnswer(true)}
-          className="group relative px-16 py-6 border border-gray-200 hover:border-luxury-gold transition-all duration-500 overflow-hidden"
+          className="group relative px-16 py-6 border border-gray-100 hover:border-gray-200 transition-all duration-500"
         >
-          <div className="absolute inset-0 bg-luxury-gold translate-y-full group-hover:translate-y-0 transition-transform duration-500 opacity-5" />
-          <span className="relative z-10 uppercase tracking-[0.4em] text-sm font-light group-hover:text-luxury-gold transition-colors">Yes</span>
+          <span className="relative z-10 uppercase tracking-[0.4em] text-sm font-extralight text-gray-400 group-hover:text-gray-600 transition-colors">Yes</span>
         </button>
 
         <button
           onClick={() => onAnswer(false)}
-          className="group relative px-16 py-6 border border-gray-200 hover:border-luxury-gold transition-all duration-500 overflow-hidden"
+          className="group relative px-16 py-6 border border-gray-100 hover:border-gray-200 transition-all duration-500"
         >
-          <div className="absolute inset-0 bg-luxury-gold translate-y-full group-hover:translate-y-0 transition-transform duration-500 opacity-5" />
-          <span className="relative z-10 uppercase tracking-[0.4em] text-sm font-light group-hover:text-luxury-gold transition-colors">No</span>
+          <span className="relative z-10 uppercase tracking-[0.4em] text-sm font-extralight text-gray-400 group-hover:text-gray-600 transition-colors">No</span>
         </button>
       </div>
     </div>

@@ -167,6 +167,7 @@ const App: React.FC = () => {
 
         const qImages: Record<string, string[]> = {
           q6_tea: ['/greentea.webp', '/lemontea.webp'],
+          q7_packages: ['/packages.png'],
           q8_review: ['/google_review.webp'],
           q9_coupon: ['/coupon.jpg']
         };
