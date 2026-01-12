@@ -8,7 +8,7 @@ import { SurveyData } from "../types";
  */
 
 // REPLACE THIS WITH YOUR DEPLOYED WEB APP URL
-const GOOGLE_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxBloTRMQGBLXAXqn63djRrtyxenMWYS7aeGJYqfURAt19N_bnX4Npri1lxV4sLLL5e/exec';
+const GOOGLE_SHEETS_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbySh63DmZ3vZXgSI9bjyjfkqlOIYiATX8367x_ha8C4B1YGlmgANdVVJ4r74HO81G4-/exec';
 
 // AIRTABLE CONFIGURATION
 const AIRTABLE_API_KEY = import.meta.env.VITE_AIRTABLE_API_KEY || 'pat.PLACEHOLDER';
@@ -22,13 +22,17 @@ export const syncFeedbackToRegistry = async (data: SurveyData): Promise<boolean>
 
   const payload = {
     ...data,
-    mobile: data.mobileNumber || "N/A",
+    timestamp: new Date().toISOString(),
+    mobile: data.mobileNumber || "N/A", // Explicitly map mobileNumber to 'mobile' for GAS
     stylists: data.stylistRatings.map(s => s.name).join(", "),
-    ratings: data.stylistRatings.map(s => `${s.name}: ${s.rating}/5`).join(" | "),
-    timestamp: new Date().toISOString()
+    ratings: data.stylistRatings.map(s => `${s.name}: ${s.rating}/5`).join(" | ")
   };
 
-  console.log("Registry: Final Sync Payload:", payload);
+  console.log("Registry: Outbound Payload ->", {
+    mobile: payload.mobile,
+    hasRatings: data.stylistRatings.length > 0,
+    commentsLength: data.additionalComments.length
+  });
   if (!data.mobileNumber) {
     console.warn("Registry Warning: No mobile number found in state during sync.");
   }

@@ -43,20 +43,22 @@ const App: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mobileEnc = params.get('m');
+
     if (mobileEnc) {
       try {
-        const decoded = atob(mobileEnc);
-        console.log("Registry: Decoded mobile number from URL:", decoded);
+        // Remove spaces and handle standard/URL-safe base64
+        const sanitized = mobileEnc.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = atob(sanitized);
+        console.log("Registry: Successfully decoded mobile from URL:", decoded);
         setData(prev => ({ ...prev, mobileNumber: decoded }));
       } catch (e) {
-        console.error("Failed to decode mobile number:", e);
+        console.error("Registry Error: Failed to decode mobile number:", e);
       }
     } else {
-      // Fallback to legacy 'mobile' if present
-      const mobile = params.get('mobile');
-      if (mobile) {
-        console.log("Registry: Captured legacy mobile number from URL:", mobile);
-        setData(prev => ({ ...prev, mobileNumber: mobile }));
+      const mobileRaw = params.get('mobile');
+      if (mobileRaw) {
+        console.log("Registry: Using legacy mobile number from URL:", mobileRaw);
+        setData(prev => ({ ...prev, mobileNumber: mobileRaw }));
       }
     }
   }, []);
@@ -80,30 +82,38 @@ const App: React.FC = () => {
     }
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleFinish = async (finalComments: string) => {
-    // Functional update to get latest state for sync
-    setData(prev => {
-      const updatedData = { ...prev, additionalComments: finalComments };
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
-      // Trigger sync with the most up-to-date data
-      (async () => {
-        setStep('loading');
-        try {
-          const [syncResult, message] = await Promise.all([
-            syncFeedbackToRegistry(updatedData),
-            generateThankYouMessage(updatedData)
-          ]);
-          setAiMessage(message);
-          setStep('completion');
-        } catch (error) {
-          console.error("Workflow error:", error);
-          setAiMessage("Thank you for your visit. We have recorded your feedback and look forward to serving you again.");
-          setStep('completion');
-        }
-      })();
+    // First, update the state so UI reflects final data if needed
+    setData(prev => ({ ...prev, additionalComments: finalComments }));
 
-      return updatedData;
-    });
+    // Create the final data object for syncing (ensures we have the absolute latest)
+    const finalData: SurveyData = {
+      ...data,
+      additionalComments: finalComments
+    };
+
+    setStep('loading');
+
+    try {
+      const [syncResult, message] = await Promise.all([
+        syncFeedbackToRegistry(finalData),
+        generateThankYouMessage(finalData)
+      ]);
+
+      setAiMessage(message);
+      setStep('completion');
+    } catch (error) {
+      console.error("Workflow error:", error);
+      setAiMessage("Thank you for your visit. We have recorded your feedback and look forward to serving you again.");
+      setStep('completion');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderContent = () => {

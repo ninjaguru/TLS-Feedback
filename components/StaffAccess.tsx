@@ -73,7 +73,15 @@ const StaffAccess: React.FC<StaffAccessProps> = ({ onMobileSet, currentMobile })
                                 Copy Link & Set Active
                             </button>
                             <button
-                                onClick={() => window.location.href = '/'}
+                                onClick={() => {
+                                    if (generatedUrl) {
+                                        const url = new URL(generatedUrl);
+                                        window.history.pushState({}, '', url.search);
+                                        window.location.reload(); // Force reload to trigger App.tsx useEffect and clear path
+                                    } else {
+                                        window.location.href = '/';
+                                    }
+                                }}
                                 className="w-full py-3 border border-gray-200 text-gray-500 text-[10px] uppercase font-bold tracking-widest hover:bg-gray-100 transition-colors"
                             >
                                 Go to Feedback Form
@@ -85,7 +93,12 @@ const StaffAccess: React.FC<StaffAccessProps> = ({ onMobileSet, currentMobile })
 
             <div className="mt-16 pt-8 border-t border-gray-100 w-full max-w-xs">
                 <button
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => {
+                        const params = new URLSearchParams(window.location.search);
+                        const m = params.get('m');
+                        window.history.pushState({}, '', m ? `/?m=${m}` : '/');
+                        window.location.reload();
+                    }}
                     className="text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-luxury-gold transition-colors"
                 >
                     ← Back to Main Page
