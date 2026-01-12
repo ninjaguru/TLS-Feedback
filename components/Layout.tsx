@@ -4,16 +4,17 @@ import React from 'react';
 interface LayoutProps {
   children: React.ReactNode;
   progress: number;
+  showProgress?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, progress }) => {
+const Layout: React.FC<LayoutProps> = ({ children, progress, showProgress = true }) => {
   return (
     <div className="min-h-screen flex flex-col relative">
       {/* Sticky Progress Bar */}
       <div className="fixed top-0 left-0 w-full h-1 bg-gray-100 z-50">
-        <div 
-          className="h-full bg-luxury-gold transition-all duration-700 ease-out" 
-          style={{ width: `${progress}%` }} 
+        <div
+          className="h-full bg-luxury-gold transition-all duration-700 ease-out"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
@@ -24,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children, progress }) => {
           <p className="text-[10px] tracking-[0.4em] text-gray-400 uppercase font-medium">Elegance Defined By Craft</p>
         </div>
         <div className="hidden md:block">
-            <span className="text-[10px] tracking-widest text-luxury-gold uppercase font-semibold">Guest Registry</span>
+          <span className="text-[10px] tracking-widest text-luxury-gold uppercase font-semibold">Guest Registry</span>
         </div>
       </header>
 

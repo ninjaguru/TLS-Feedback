@@ -10,8 +10,10 @@ import LoadingScreen from './components/LoadingScreen';
 import CompletionScreen from './components/CompletionScreen';
 import { syncFeedbackToRegistry } from './services/dataService';
 import { generateThankYouMessage } from './services/geminiService';
+import StaffAccess from './components/StaffAccess';
 
 const App: React.FC = () => {
+  const [isStaffPage, setIsStaffPage] = useState(window.location.pathname === '/staff');
   const [step, setStep] = useState<StepId>('welcome');
   const [data, setData] = useState<SurveyData>({
     stylistRatings: [],
@@ -28,25 +30,36 @@ const App: React.FC = () => {
   });
   const [aiMessage, setAiMessage] = useState('');
 
-  // Admin/Staff state for generating links
-  const [adminMobileInput, setAdminMobileInput] = useState('');
-  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  // Handle browser back/forward buttons for "routing"
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsStaffPage(window.location.pathname === '/staff');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Initialize mobile number from URL parameter on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const mobile = params.get('mobile');
-    if (mobile) {
-      setData(prev => ({ ...prev, mobileNumber: mobile }));
+    const mobileEnc = params.get('m');
+    if (mobileEnc) {
+      try {
+        const decoded = atob(mobileEnc);
+        console.log("Registry: Decoded mobile number from URL:", decoded);
+        setData(prev => ({ ...prev, mobileNumber: decoded }));
+      } catch (e) {
+        console.error("Failed to decode mobile number:", e);
+      }
+    } else {
+      // Fallback to legacy 'mobile' if present
+      const mobile = params.get('mobile');
+      if (mobile) {
+        console.log("Registry: Captured legacy mobile number from URL:", mobile);
+        setData(prev => ({ ...prev, mobileNumber: mobile }));
+      }
     }
   }, []);
-
-  const generateLink = () => {
-    if (!adminMobileInput) return;
-    const url = new URL(window.location.href);
-    url.searchParams.set('mobile', adminMobileInput);
-    setGeneratedUrl(url.toString());
-  };
 
   const stepsOrder: StepId[] = [
     'welcome',
@@ -58,7 +71,7 @@ const App: React.FC = () => {
   ];
 
   const currentStepIndex = useMemo(() => stepsOrder.indexOf(step), [step]);
-  const progress = useMemo(() => ((currentStepIndex + 1) / stepsOrder.length) * 100, [currentStepIndex]);
+  const progress = useMemo(() => isStaffPage ? 0 : ((currentStepIndex + 1) / stepsOrder.length) * 100, [currentStepIndex, isStaffPage]);
 
   const nextStep = () => {
     const nextIdx = currentStepIndex + 1;
@@ -68,27 +81,41 @@ const App: React.FC = () => {
   };
 
   const handleFinish = async (finalComments: string) => {
-    const updatedData = { ...data, additionalComments: finalComments };
-    setData(updatedData);
-    setStep('loading');
+    // Functional update to get latest state for sync
+    setData(prev => {
+      const updatedData = { ...prev, additionalComments: finalComments };
 
-    // Parallel execution of sync and AI message generation
-    try {
-      const [syncResult, message] = await Promise.all([
-        syncFeedbackToRegistry(updatedData),
-        generateThankYouMessage(updatedData)
-      ]);
+      // Trigger sync with the most up-to-date data
+      (async () => {
+        setStep('loading');
+        try {
+          const [syncResult, message] = await Promise.all([
+            syncFeedbackToRegistry(updatedData),
+            generateThankYouMessage(updatedData)
+          ]);
+          setAiMessage(message);
+          setStep('completion');
+        } catch (error) {
+          console.error("Workflow error:", error);
+          setAiMessage("Thank you for your visit. We have recorded your feedback and look forward to serving you again.");
+          setStep('completion');
+        }
+      })();
 
-      setAiMessage(message);
-      setStep('completion');
-    } catch (error) {
-      console.error("Workflow error:", error);
-      setAiMessage("Thank you for your visit. We have recorded your feedback and look forward to serving you again.");
-      setStep('completion');
-    }
+      return updatedData;
+    });
   };
 
-  const renderStep = () => {
+  const renderContent = () => {
+    if (isStaffPage) {
+      return (
+        <StaffAccess
+          currentMobile={data.mobileNumber}
+          onMobileSet={(mobile) => setData(prev => ({ ...prev, mobileNumber: mobile }))}
+        />
+      );
+    }
+
     switch (step) {
       case 'welcome':
         return (
@@ -103,50 +130,6 @@ const App: React.FC = () => {
             >
               Enter Registry
             </button>
-
-            {/* Staff / Client Link Generator Section */}
-            <div className="mt-32 w-full max-w-sm border-t border-gray-200 pt-8 opacity-50 hover:opacity-100 transition-opacity duration-300">
-              <p className="text-xs uppercase tracking-widest text-gray-400 mb-4">Staff Access</p>
-
-              {data.mobileNumber && (
-                <div className="mb-4 text-sm text-luxury-gold font-medium">
-                  Client Mobile: {data.mobileNumber}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <input
-                  type="tel"
-                  placeholder="Client Mobile #"
-                  className="flex-1 bg-transparent border-b border-gray-300 py-2 text-sm focus:outline-none focus:border-luxury-gold font-light"
-                  value={adminMobileInput}
-                  onChange={(e) => setAdminMobileInput(e.target.value)}
-                />
-                <button
-                  onClick={generateLink}
-                  className="text-xs uppercase tracking-widest text-gray-500 hover:text-luxury-gold transition-colors"
-                >
-                  Generate Link
-                </button>
-              </div>
-
-              {generatedUrl && (
-                <div className="mt-4 p-4 bg-gray-50 rounded text-left">
-                  <p className="text-xs text-gray-400 mb-2">Unique URL:</p>
-                  <code className="block text-xs text-gray-600 break-all mb-2">{generatedUrl}</code>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedUrl);
-                      // Also proactively set it for this session just in case they want to start immediately
-                      setData(prev => ({ ...prev, mobileNumber: adminMobileInput }));
-                    }}
-                    className="text-xs text-luxury-gold font-bold uppercase tracking-wider"
-                  >
-                    Copy & Set Active
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         );
 
@@ -154,7 +137,7 @@ const App: React.FC = () => {
         return (
           <StylistRatingComponent
             onComplete={(ratings) => {
-              setData({ ...data, stylistRatings: ratings });
+              setData(prev => ({ ...prev, stylistRatings: ratings }));
               nextStep();
             }}
           />
@@ -182,11 +165,18 @@ const App: React.FC = () => {
           q9_coupon: 'couponReceived',
         };
 
+        const qImages: Record<string, string[]> = {
+          q6_tea: ['/greentea.webp', '/lemontea.webp'],
+          q8_review: ['/google_review.webp'],
+          q9_coupon: ['/coupon.jpg']
+        };
+
         return (
           <BinaryQuestion
             text={qConfig.text}
+            images={qImages[step]}
             onAnswer={(val) => {
-              setData({ ...data, [fieldMap[step]]: val });
+              setData(prev => ({ ...prev, [fieldMap[step]]: val }));
               nextStep();
             }}
           />
@@ -208,10 +198,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout progress={progress}>
-      {renderStep()}
+    <Layout progress={progress} showProgress={!isStaffPage}>
+      {renderContent()}
     </Layout>
   );
 };
+
 
 export default App;

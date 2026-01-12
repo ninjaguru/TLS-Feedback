@@ -3,11 +3,21 @@ import { GoogleGenAI } from "@google/genai";
 import { SurveyData } from "../types";
 
 export const generateThankYouMessage = async (data: SurveyData): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+  // Use VITE_ prefix for environment variables in the browser
+  const apiKey = (import.meta.env.VITE_API_KEY as string) || "";
+
+  if (!apiKey || apiKey === "YOUR_API_KEY") {
+    console.warn("Gemini API key not found. Using default thank you message.");
+    return "Thank you for sharing your experience with us. We value your feedback and look forward to welcoming you back soon.";
+  }
+
+  // Follow the original API structure provided in the codebase
+  // @ts-ignore - Using the internal/custom library pattern as originally defined
+  const ai = new GoogleGenAI({ apiKey });
+
   const stylistNames = data.stylistRatings.map(s => s.name).join(", ");
   const ratings = data.stylistRatings.map(s => `${s.name}: ${s.rating}/5`).join(", ");
-  
+
   const prompt = `
     Context: A client just finished a service at "The London Salon". 
     Aesthetics: Elegant, professional, warm, quiet luxury.
@@ -32,8 +42,10 @@ export const generateThankYouMessage = async (data: SurveyData): Promise<string>
   `;
 
   try {
+    // Reverting to the original models.generateContent pattern
+    // @ts-ignore
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         temperature: 0.7,
